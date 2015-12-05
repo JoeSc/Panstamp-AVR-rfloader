@@ -1,0 +1,324 @@
+
+main.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         0000010a  00004000  00004000  00000078  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .jump_to      00000004  00000000  00000000  00000074  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .debug_aranges 00000038  00000000  00000000  00000182  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  3 .debug_pubnames 0000003c  00000000  00000000  000001ba  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  4 .debug_info   000002f6  00000000  00000000  000001f6  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .debug_abbrev 00000188  00000000  00000000  000004ec  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  6 .debug_line   00000313  00000000  00000000  00000674  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  7 .debug_frame  00000050  00000000  00000000  00000988  2**2
+                  CONTENTS, READONLY, DEBUGGING
+  8 .debug_str    00000126  00000000  00000000  000009d8  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  9 .debug_loc    000000fe  00000000  00000000  00000afe  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 10 .debug_ranges 00000138  00000000  00000000  00000bfc  2**0
+                  CONTENTS, READONLY, DEBUGGING
+
+Disassembly of section .text:
+
+00004000 <main>:
+      "1:\n"
+    );
+}
+
+int main(void)
+{
+    4000:	14 be       	out	0x34, r1	; 52
+//--	uint8_t ch;
+//--	ch = MCUSR;
+	MCUSR = 0;
+
+	WDTCSR |= _BV(WDCE) | _BV(WDE);
+    4002:	80 91 60 00 	lds	r24, 0x0060
+    4006:	88 61       	ori	r24, 0x18	; 24
+    4008:	80 93 60 00 	sts	0x0060, r24
+	WDTCSR = 0;
+    400c:	10 92 60 00 	sts	0x0060, r1
+
+//--	// Check if the WDT was used to reset, in which case we dont bootload and skip straight to the code. woot.
+//--	if (! (ch &  _BV(EXTRF))) // if its a not an external reset...
+//--		app_start();  // skip bootloader
+
+	UCSR0A = (1<<U2X0); //Double speed mode USART0
+    4010:	82 e0       	ldi	r24, 0x02	; 2
+    4012:	80 93 c0 00 	sts	0x00C0, r24
+	UBRR0L = (uint8_t)(F_CPU/(BAUD_RATE*8L)-1);
+    4016:	80 e1       	ldi	r24, 0x10	; 16
+    4018:	80 93 c4 00 	sts	0x00C4, r24
+	UBRR0H = (F_CPU/(BAUD_RATE*8L)-1) >> 8;
+    401c:	10 92 c5 00 	sts	0x00C5, r1
+
+	UCSR0B = (1<<RXEN0) | (1<<TXEN0);
+    4020:	88 e1       	ldi	r24, 0x18	; 24
+    4022:	80 93 c1 00 	sts	0x00C1, r24
+	UCSR0C = (1<<UCSZ00) | (1<<UCSZ01);
+    4026:	86 e0       	ldi	r24, 0x06	; 6
+    4028:	80 93 c2 00 	sts	0x00C2, r24
+
+	/* Enable internal pull-up resistor on pin D0 (RX), in order
+	to supress line noise that prevents the bootloader from
+	timing out (DAM: 20070509) */
+	DDRD &= ~_BV(PIND0);
+    402c:	50 98       	cbi	0x0a, 0	; 10
+	PORTD |= _BV(PIND0);
+    402e:	58 9a       	sbi	0x0b, 0	; 11
+
+
+	/* set LED pin as output */
+	LED_DDR |= _BV(LED);
+    4030:	25 9a       	sbi	0x04, 5	; 4
+    4032:	40 e3       	ldi	r20, 0x30	; 48
+    4034:	50 e0       	ldi	r21, 0x00	; 0
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+	UDR0 = ch;
+    4036:	84 e3       	ldi	r24, 0x34	; 52
+    4038:	f8 2e       	mov	r15, r24
+    403a:	60 e3       	ldi	r22, 0x30	; 48
+    403c:	0a e3       	ldi	r16, 0x3A	; 58
+    403e:	1d e0       	ldi	r17, 0x0D	; 13
+    4040:	7a e0       	ldi	r23, 0x0A	; 10
+    milliseconds can be achieved.
+ */
+void
+_delay_loop_2(uint16_t __count)
+{
+	__asm__ volatile (
+    4042:	a8 ec       	ldi	r26, 0xC8	; 200
+    4044:	b0 e0       	ldi	r27, 0x00	; 0
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    4046:	80 91 c0 00 	lds	r24, 0x00C0
+    404a:	85 ff       	sbrs	r24, 5
+    404c:	fc cf       	rjmp	.-8      	; 0x4046 <main+0x46>
+	UDR0 = ch;
+    404e:	f0 92 c6 00 	sts	0x00C6, r15
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    4052:	80 91 c0 00 	lds	r24, 0x00C0
+    4056:	85 ff       	sbrs	r24, 5
+    4058:	fc cf       	rjmp	.-8      	; 0x4052 <main+0x52>
+	UDR0 = ch;
+    405a:	60 93 c6 00 	sts	0x00C6, r22
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    405e:	80 91 c0 00 	lds	r24, 0x00C0
+    4062:	85 ff       	sbrs	r24, 5
+    4064:	fc cf       	rjmp	.-8      	; 0x405e <main+0x5e>
+	UDR0 = ch;
+    4066:	60 93 c6 00 	sts	0x00C6, r22
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    406a:	80 91 c0 00 	lds	r24, 0x00C0
+    406e:	85 ff       	sbrs	r24, 5
+    4070:	fc cf       	rjmp	.-8      	; 0x406a <main+0x6a>
+	UDR0 = ch;
+    4072:	60 93 c6 00 	sts	0x00C6, r22
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    4076:	80 91 c0 00 	lds	r24, 0x00C0
+    407a:	85 ff       	sbrs	r24, 5
+    407c:	fc cf       	rjmp	.-8      	; 0x4076 <main+0x76>
+	UDR0 = ch;
+    407e:	00 93 c6 00 	sts	0x00C6, r16
+		putch('4');
+		putch('0');
+		putch('0');
+		putch('0');
+		putch(':');
+		putch(i++);
+    4082:	9a 01       	movw	r18, r20
+    4084:	2f 5f       	subi	r18, 0xFF	; 255
+    4086:	3f 4f       	sbci	r19, 0xFF	; 255
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    4088:	80 91 c0 00 	lds	r24, 0x00C0
+    408c:	85 ff       	sbrs	r24, 5
+    408e:	fc cf       	rjmp	.-8      	; 0x4088 <main+0x88>
+	UDR0 = ch;
+    4090:	40 93 c6 00 	sts	0x00C6, r20
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    4094:	80 91 c0 00 	lds	r24, 0x00C0
+    4098:	85 ff       	sbrs	r24, 5
+    409a:	fc cf       	rjmp	.-8      	; 0x4094 <main+0x94>
+	UDR0 = ch;
+    409c:	10 93 c6 00 	sts	0x00C6, r17
+	}
+}
+
+void putch(char ch)
+{
+	while (!(UCSR0A & _BV(UDRE0)));
+    40a0:	80 91 c0 00 	lds	r24, 0x00C0
+    40a4:	85 ff       	sbrs	r24, 5
+    40a6:	fc cf       	rjmp	.-8      	; 0x40a0 <main+0xa0>
+	UDR0 = ch;
+    40a8:	70 93 c6 00 	sts	0x00C6, r23
+		putch('0');
+		putch(':');
+		putch(i++);
+		putch('\r');
+		putch('\n');
+		if (i > '~')
+    40ac:	2f 37       	cpi	r18, 0x7F	; 127
+    40ae:	31 05       	cpc	r19, r1
+    40b0:	14 f0       	brlt	.+4      	; 0x40b6 <main+0xb6>
+    40b2:	20 e3       	ldi	r18, 0x30	; 48
+    40b4:	30 e0       	ldi	r19, 0x00	; 0
+    40b6:	88 ee       	ldi	r24, 0xE8	; 232
+    40b8:	93 e0       	ldi	r25, 0x03	; 3
+    40ba:	fd 01       	movw	r30, r26
+    40bc:	31 97       	sbiw	r30, 0x01	; 1
+    40be:	f1 f7       	brne	.-4      	; 0x40bc <main+0xbc>
+		__ticks = (uint16_t) (__ms * 10.0);
+		while(__ticks)
+		{
+			// wait 1/10 ms
+			_delay_loop_2(((F_CPU) / 4e3) / 10);
+			__ticks --;
+    40c0:	01 97       	sbiw	r24, 0x01	; 1
+		__ticks = 1;
+	else if (__tmp > 65535)
+	{
+		//	__ticks = requested delay in 1/10 ms
+		__ticks = (uint16_t) (__ms * 10.0);
+		while(__ticks)
+    40c2:	d9 f7       	brne	.-10     	; 0x40ba <main+0xba>
+    40c4:	a9 01       	movw	r20, r18
+    40c6:	bf cf       	rjmp	.-130    	; 0x4046 <main+0x46>
+
+000040c8 <flash_led>:
+    40c8:	48 ec       	ldi	r20, 0xC8	; 200
+    40ca:	50 e0       	ldi	r21, 0x00	; 0
+    40cc:	13 c0       	rjmp	.+38     	; 0x40f4 <flash_led+0x2c>
+}
+
+void flash_led(uint8_t count)
+{
+	while (count--) {
+		LED_PORT |= _BV(LED);
+    40ce:	2d 9a       	sbi	0x05, 5	; 5
+    40d0:	28 ee       	ldi	r18, 0xE8	; 232
+    40d2:	33 e0       	ldi	r19, 0x03	; 3
+    40d4:	fa 01       	movw	r30, r20
+    40d6:	31 97       	sbiw	r30, 0x01	; 1
+    40d8:	f1 f7       	brne	.-4      	; 0x40d6 <flash_led+0xe>
+		{
+			// wait 1/10 ms
+			_delay_loop_2(((F_CPU) / 4e3) / 10);
+			__ticks --;
+    40da:	21 50       	subi	r18, 0x01	; 1
+    40dc:	30 40       	sbci	r19, 0x00	; 0
+		__ticks = 1;
+	else if (__tmp > 65535)
+	{
+		//	__ticks = requested delay in 1/10 ms
+		__ticks = (uint16_t) (__ms * 10.0);
+		while(__ticks)
+    40de:	d1 f7       	brne	.-12     	; 0x40d4 <flash_led+0xc>
+		_delay_ms(100);
+		LED_PORT &= ~_BV(LED);
+    40e0:	2d 98       	cbi	0x05, 5	; 5
+    40e2:	28 ee       	ldi	r18, 0xE8	; 232
+    40e4:	33 e0       	ldi	r19, 0x03	; 3
+    40e6:	fa 01       	movw	r30, r20
+    40e8:	31 97       	sbiw	r30, 0x01	; 1
+    40ea:	f1 f7       	brne	.-4      	; 0x40e8 <flash_led+0x20>
+		{
+			// wait 1/10 ms
+			_delay_loop_2(((F_CPU) / 4e3) / 10);
+			__ticks --;
+    40ec:	21 50       	subi	r18, 0x01	; 1
+    40ee:	30 40       	sbci	r19, 0x00	; 0
+		__ticks = 1;
+	else if (__tmp > 65535)
+	{
+		//	__ticks = requested delay in 1/10 ms
+		__ticks = (uint16_t) (__ms * 10.0);
+		while(__ticks)
+    40f0:	d1 f7       	brne	.-12     	; 0x40e6 <flash_led+0x1e>
+    40f2:	81 50       	subi	r24, 0x01	; 1
+	}
+}
+
+void flash_led(uint8_t count)
+{
+	while (count--) {
+    40f4:	88 23       	and	r24, r24
+    40f6:	59 f7       	brne	.-42     	; 0x40ce <flash_led+0x6>
+		LED_PORT |= _BV(LED);
+		_delay_ms(100);
+		LED_PORT &= ~_BV(LED);
+		_delay_ms(100);
+	}
+}
+    40f8:	08 95       	ret
+
+000040fa <putch>:
+
+void putch(char ch)
+{
+    40fa:	98 2f       	mov	r25, r24
+	while (!(UCSR0A & _BV(UDRE0)));
+    40fc:	80 91 c0 00 	lds	r24, 0x00C0
+    4100:	85 ff       	sbrs	r24, 5
+    4102:	fc cf       	rjmp	.-8      	; 0x40fc <putch+0x2>
+	UDR0 = ch;
+    4104:	90 93 c6 00 	sts	0x00C6, r25
+}
+    4108:	08 95       	ret
+
+Disassembly of section .jump_to:
+
+00000000 <jump>:
+
+//unsigned const int __attribute__((section(".version")))
+//test = 1234;
+
+void jump()
+{
+   0:	0c 94 00 20 	jmp	0x4000	; 0x4000 <main>
